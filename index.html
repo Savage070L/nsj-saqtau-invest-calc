@@ -207,6 +207,23 @@
         .placeholder p { font-size: 15px; }
         .placeholder .hint { margin-top: 8px; font-size: 12px; opacity: 0.6; }
         @keyframes pulseIcon { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; } }
+        .nbrk-rate-block {
+            display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px;
+            background: var(--surface); border-radius: var(--radius-xs); box-shadow: var(--shadow-in);
+            border-left: 3px solid var(--accent-green);
+        }
+        .nbrk-rate-block.nbrk-error { border-left-color: #f59e0b; }
+        .nbrk-rate-icon {
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: 800; color: white;
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            box-shadow: var(--shadow-out-sm); flex-shrink: 0;
+        }
+        .nbrk-rate-info { flex: 1; min-width: 0; }
+        .nbrk-rate-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-light); display: flex; align-items: center; gap: 6px; }
+        .nbrk-source { font-size: 8px; background: rgba(16,185,129,0.12); color: var(--accent-green); padding: 1px 6px; border-radius: 4px; font-weight: 700; }
+        .nbrk-rate-value { font-family: 'SF Mono', 'Menlo', monospace; font-size: 20px; font-weight: 800; color: var(--text-main); line-height: 1.2; }
+        .nbrk-rate-date { font-size: 10px; color: var(--text-light); margin-top: 1px; }
         .error-box { background: rgba(220,38,38,0.06); border: none; border-radius: var(--radius-xs); padding: 14px 18px; color: #dc2626; font-size: 13px; box-shadow: var(--shadow-in); }
         .animate-count { display: inline-block; transition: all 0.3s; }
         @keyframes countFlash { 0% { color: var(--accent); transform: scale(1.12); } 100% { color: inherit; transform: scale(1); } }
@@ -239,7 +256,7 @@
                 <div class="radio-pill"><input type="radio" name="gender" id="g_female" value="female"><label for="g_female">Женский</label></div>
             </div>
         </div>
-        <div class="form-row-3">
+        <div class="form-row">
             <div class="form-group"><label>Срок (лет)</label>
                 <div class="stepper">
                     <div class="btn-step minus" data-target="term" data-step="-1" data-min="3" data-max="20">&#8722;</div>
@@ -256,14 +273,8 @@
                     <option value="single">Единовременный</option>
                 </select>
             </div>
-            <div class="form-group"><label>Курс USD (KZT)</label>
-                <div class="stepper">
-                    <div class="btn-step minus" data-target="usd_rate" data-step="-1" data-min="1" data-max="9999">&#8722;</div>
-                    <input type="text" id="usd_rate" value="500" class="fmt-number" data-step="1" data-min="1" data-max="9999">
-                    <div class="btn-step plus" data-target="usd_rate" data-step="1" data-min="1" data-max="9999">+</div>
-                </div>
-            </div>
         </div>
+        <input type="hidden" id="usd_rate" value="500">
         <div class="form-group"><label>Страховая защита</label>
             <div class="radio-group">
                 <div class="radio-pill"><input type="radio" name="death_benefit" id="db_full" value="full_sum_assured" checked><label for="db_full">Полная страх. сумма</label></div>
@@ -297,14 +308,16 @@
             <div class="rider-group-label">Фиксированные суммы</div>
             <div class="rider-check-row"><input type="checkbox" id="r_tr"><span class="rider-name">Телесные травмы от НС</span>
                 <select id="r_tr_s"><option value="500000">500 000</option><option value="1000000" selected>1 000 000</option><option value="1500000">1 500 000</option><option value="2000000">2 000 000</option></select></div>
-            <div class="rider-check-row"><input type="checkbox" id="r_td"><span class="rider-name">Врем. утрата труд. от НС</span>
-                <select id="r_td_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
             <div class="rider-check-row"><input type="checkbox" id="r_ho"><span class="rider-name">Госпитализация от НС</span>
                 <select id="r_ho_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
-            <div class="rider-group-label">Актуарные покрытия</div>
-            <div class="rider-check-row"><input type="checkbox" id="r_ci"><span class="rider-name">Критические заболевания</span>
-                <select id="r_ci_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
-            <div class="rider-check-row"><input type="checkbox" id="r_pw"><span class="rider-name">Освоб. от уплаты взносов</span><span class="rider-sa-tag">PV будущих премий</span></div>
+        </div>
+        <div class="nbrk-rate-block" id="nbrk_rate_block">
+            <div class="nbrk-rate-icon">$</div>
+            <div class="nbrk-rate-info">
+                <div class="nbrk-rate-label">Курс USD / KZT <span class="nbrk-source">НБРК</span></div>
+                <div class="nbrk-rate-value" id="nbrk_rate_value">Загрузка...</div>
+                <div class="nbrk-rate-date" id="nbrk_rate_date"></div>
+            </div>
         </div>
         <button class="btn-calculate" id="btn_calc" onclick="doCalculate()">Рассчитать</button>
     </div>
@@ -325,7 +338,7 @@ function fmtS(n){if(n==null)return'\u2014';return Math.round(Number(n)).toString
 function fmtPct(n){if(n==null)return'\u2014';return(Number(n)*100).toFixed(2)+'%';}
 function fmtUsd(n){if(!n||n===0)return'\u2014';return'$'+Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
 
-var RL={'accidental_death':'Смерть от НС','disability_accident_lumpsum':'Инвал. 1,2 гр. от НС','trauma':'Телесные травмы от НС','temporary_disability':'Врем. утрата труд. от НС','hospitalization':'Госпитализация от НС','critical_illness':'Критические заболевания','premium_waiver':'Освоб. от уплаты взносов'};
+var RL={'accidental_death':'Смерть от НС','disability_accident_lumpsum':'Инвал. 1,2 гр. от НС','trauma':'Телесные травмы от НС','hospitalization':'Госпитализация от НС'};
 var FL={'annual':'Годовой','semiannual':'Полугодовой','quarterly':'Квартальный','monthly':'Ежемесячный','single':'Единовременный'};
 var DL={'full_sum_assured':'Полная страховая сумма','paid_premiums':'Сумма оплаченных взносов'};
 
@@ -372,10 +385,7 @@ function doCalculate(){
     if(document.getElementById('r_ad').checked)body.riders.accidental_death={enabled:true};
     if(document.getElementById('r_dis').checked)body.riders.disability_accident_lumpsum={enabled:true};
     if(document.getElementById('r_tr').checked)body.riders.trauma={enabled:true,sum:parseFloat(document.getElementById('r_tr_s').value)};
-    if(document.getElementById('r_td').checked)body.riders.temporary_disability={enabled:true,sum:parseFloat(document.getElementById('r_td_s').value)};
     if(document.getElementById('r_ho').checked)body.riders.hospitalization={enabled:true,sum:parseFloat(document.getElementById('r_ho_s').value)};
-    if(document.getElementById('r_ci').checked)body.riders.critical_illness={enabled:true,sum:parseFloat(document.getElementById('r_ci_s').value)};
-    if(document.getElementById('r_pw').checked)body.riders.premium_waiver={enabled:true};
 
     var d=NSJInvestEngine.calculate(body);
     if(!d.success){renderError(d.error,d.validation);return;}
@@ -434,6 +444,75 @@ document.querySelectorAll('.fmt-number').forEach(function(el){
 });
 
 document.addEventListener('keydown',function(e){if(e.key==='Enter')doCalculate();});
+
+/* --- NBRK USD/KZT rate auto-fetch --- */
+(function(){
+    var NBRK_RSS = 'https://www.nationalbank.kz/rss/rates_all.xml';
+    var PROXY    = 'https://api.allorigins.win/raw?url=';
+    var FALLBACK_RATE = 500;
+
+    function parseUsdFromXml(text) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(text, 'application/xml');
+        var items = doc.querySelectorAll('item');
+        for (var i = 0; i < items.length; i++) {
+            var title = items[i].querySelector('title');
+            if (title && title.textContent.trim() === 'USD') {
+                var desc = items[i].querySelector('description');
+                var pub  = items[i].querySelector('pubDate');
+                var rate = desc ? parseFloat(desc.textContent.trim()) : 0;
+                var date = pub ? pub.textContent.trim() : '';
+                return { rate: rate, date: date };
+            }
+        }
+        return null;
+    }
+
+    function applyRate(rate, dateStr, isError) {
+        var valEl  = document.getElementById('nbrk_rate_value');
+        var dateEl = document.getElementById('nbrk_rate_date');
+        var block  = document.getElementById('nbrk_rate_block');
+        var hiddenInput = document.getElementById('usd_rate');
+
+        if (isError) {
+            valEl.textContent = FALLBACK_RATE.toFixed(2) + ' KZT';
+            dateEl.textContent = 'Не удалось загрузить. Используется курс по умолчанию';
+            block.classList.add('nbrk-error');
+            hiddenInput.value = FALLBACK_RATE;
+        } else {
+            valEl.textContent = rate.toFixed(2) + ' KZT';
+            dateEl.textContent = 'на ' + dateStr;
+            block.classList.remove('nbrk-error');
+            hiddenInput.value = rate;
+        }
+    }
+
+    function fetchRate(url) {
+        return fetch(url).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.text();
+        });
+    }
+
+    /* Try direct first, then via proxy */
+    fetchRate(NBRK_RSS)
+        .then(function(text) {
+            var res = parseUsdFromXml(text);
+            if (res && res.rate > 0) { applyRate(res.rate, res.date, false); }
+            else throw new Error('USD not found');
+        })
+        .catch(function() {
+            fetchRate(PROXY + encodeURIComponent(NBRK_RSS))
+                .then(function(text) {
+                    var res = parseUsdFromXml(text);
+                    if (res && res.rate > 0) { applyRate(res.rate, res.date, false); }
+                    else { applyRate(FALLBACK_RATE, '', true); }
+                })
+                .catch(function() {
+                    applyRate(FALLBACK_RATE, '', true);
+                });
+        });
+})();
 </script>
 </body>
 </html>
