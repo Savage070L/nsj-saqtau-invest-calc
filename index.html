@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор НСЖ — Saqtau Invest</title>
+    <style>
+        :root {
+            --bg: #E4E9F2;
+            --surface: #E4E9F2;
+            --text-main: #3a4a5c;
+            --text-light: #8494a7;
+            --accent: #4361ee;
+            --accent-hover: #3451d1;
+            --accent-green: #10b981;
+            --accent-sky: #38bdf8;
+            --accent-purple: #8b5cf6;
+            --shadow-out: 6px 6px 12px rgba(163,177,198,0.5), -6px -6px 12px rgba(255,255,255,0.8);
+            --shadow-out-sm: 3px 3px 6px rgba(163,177,198,0.45), -3px -3px 6px rgba(255,255,255,0.75);
+            --shadow-in: inset 3px 3px 6px rgba(163,177,198,0.45), inset -3px -3px 6px rgba(255,255,255,0.75);
+            --shadow-hover: 8px 8px 16px rgba(163,177,198,0.55), -8px -8px 16px rgba(255,255,255,0.9);
+            --shadow-btn: 4px 4px 8px rgba(163,177,198,0.5), -4px -4px 8px rgba(255,255,255,0.85);
+            --shadow-btn-press: inset 2px 2px 5px rgba(163,177,198,0.5), inset -2px -2px 5px rgba(255,255,255,0.7);
+            --radius: 20px;
+            --radius-sm: 14px;
+            --radius-xs: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--text-main); font-size: 14px; line-height: 1.5;
+        }
+        .header {
+            background: var(--surface); padding: 14px 24px; display: flex; align-items: center;
+            justify-content: space-between; box-shadow: 0 4px 12px rgba(163,177,198,0.3); position: relative; z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .logo-pill {
+            background: #fff; border-radius: 14px; padding: 6px 14px;
+            display: flex; align-items: center; box-shadow: var(--shadow-out-sm);
+        }
+        .logo-pill img { height: 32px; width: auto; display: block; }
+        .header-right { text-align: right; }
+        .header-right h1 {
+            font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header-right .subtitle { font-size: 12px; color: var(--text-light); font-weight: 500; letter-spacing: 0.5px; }
+        .container {
+            display: grid; grid-template-columns: 480px 1fr; gap: 16px; padding: 12px 16px;
+            max-width: 1600px; margin: 0 auto; align-items: start;
+        }
+        .panel-left {
+            background: var(--surface); border-radius: var(--radius); padding: 14px 16px;
+            box-shadow: var(--shadow-out); overflow-y: auto; max-height: calc(100vh - 90px);
+            position: sticky; top: 12px;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .section-title {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            color: var(--text-light); margin-bottom: 8px; padding-bottom: 4px;
+            border-bottom: 2px solid rgba(163,177,198,0.2);
+        }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+        .neu-input {
+            width: 100%; padding: 9px 12px; border: none; border-radius: var(--radius-xs);
+            font-size: 13px; background: var(--surface); box-shadow: var(--shadow-btn);
+            color: var(--text-main); transition: all 0.25s ease; outline: none; cursor: pointer;
+            font-weight: 600; -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        }
+        .neu-input:focus, .neu-input:active { box-shadow: var(--shadow-btn-press); }
+        .neu-input:hover { transform: translateY(-1px); box-shadow: 5px 5px 10px rgba(163,177,198,0.55), -5px -5px 10px rgba(255,255,255,0.9); }
+        select.neu-input {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238494a7' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+        }
+        .radio-group { display: flex; gap: 6px; margin-top: 4px; }
+        .radio-pill { flex: 1; position: relative; }
+        .radio-pill input { display: none; }
+        .radio-pill label {
+            display: block; text-align: center; padding: 8px 10px; border-radius: var(--radius-xs);
+            cursor: pointer; font-size: 12px; font-weight: 600; background: var(--surface);
+            box-shadow: var(--shadow-btn); transition: all 0.25s ease; color: var(--text-light);
+        }
+        .radio-pill input:checked + label {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white;
+            box-shadow: 2px 2px 6px rgba(67,97,238,0.4), -1px -1px 4px rgba(67,97,238,0.15);
+        }
+        .radio-pill label:hover { transform: translateY(-1px); }
+        .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+        .mode-toggle .radio-pill label { font-size: 11px; padding: 9px 6px; }
+        .stepper { display: flex; align-items: center; gap: 0; border-radius: var(--radius-xs); overflow: hidden; }
+        .stepper .btn-step {
+            width: 34px; height: 36px; border: none; background: var(--surface); color: var(--text-main);
+            font-size: 17px; font-weight: 700; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; transition: all 0.15s; user-select: none; flex-shrink: 0;
+            box-shadow: var(--shadow-btn);
+        }
+        .stepper .btn-step:hover { color: var(--accent); transform: scale(1.05); }
+        .stepper .btn-step:active { box-shadow: var(--shadow-btn-press); transform: scale(0.95); }
+        .stepper .btn-step.minus { border-radius: var(--radius-xs) 0 0 var(--radius-xs); }
+        .stepper .btn-step.plus { border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
+        .stepper input {
+            flex: 1; min-width: 0; padding: 7px 6px; border: none; background: var(--surface);
+            box-shadow: var(--shadow-in); font-size: 13px; text-align: right;
+            font-family: 'SF Mono', 'Menlo', monospace; color: var(--text-main); outline: none; font-weight: 600;
+        }
+        .stepper input:focus { box-shadow: var(--shadow-in), 0 0 0 2px rgba(67,97,238,0.2); }
+        .riders-section { margin-top: 8px; }
+        .rider-group-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--accent); margin: 10px 0 6px 0; padding-bottom: 3px;
+            border-bottom: 1px solid rgba(67,97,238,0.15);
+        }
+        .rider-group-label:first-child { margin-top: 0; }
+        .rider-check-row {
+            display: grid; grid-template-columns: 22px 1fr 130px; gap: 6px; align-items: center;
+            padding: 5px 0; border-bottom: 1px solid rgba(163,177,198,0.15);
+        }
+        .rider-check-row:last-child { border-bottom: none; }
+        .rider-check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+        .rider-check-row .rider-name { font-size: 11px; color: var(--text-main); font-weight: 500; }
+        .rider-check-row .rider-sa-tag {
+            font-size: 8px; color: var(--accent); background: rgba(67,97,238,0.08);
+            padding: 1px 6px; border-radius: 6px; font-weight: 600; white-space: nowrap; text-align: center;
+        }
+        .rider-check-row select {
+            width: 100%; padding: 6px 8px; border: none; border-radius: 8px; font-size: 11px;
+            background: var(--surface); box-shadow: var(--shadow-btn); color: var(--text-main);
+            outline: none; cursor: pointer; font-family: 'SF Mono', 'Menlo', monospace; font-weight: 600;
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238494a7' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; transition: all 0.2s ease;
+        }
+        .rider-check-row select:hover { transform: translateY(-1px); box-shadow: 5px 5px 10px rgba(163,177,198,0.55), -5px -5px 10px rgba(255,255,255,0.9); }
+        .rider-check-row select:focus { box-shadow: var(--shadow-btn-press); }
+        .btn-calculate {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700;
+            cursor: pointer; margin-top: 12px; transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 4px 4px 10px rgba(67,97,238,0.35), -2px -2px 6px rgba(255,255,255,0.5);
+            letter-spacing: 0.5px; position: relative; overflow: hidden;
+        }
+        .btn-calculate::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+            background: rgba(255,255,255,0.15); border-radius: 50%;
+            transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s;
+        }
+        .btn-calculate:hover { transform: translateY(-2px); box-shadow: 6px 6px 14px rgba(67,97,238,0.4), -3px -3px 8px rgba(255,255,255,0.6); }
+        .btn-calculate:hover::after { width: 300px; height: 300px; }
+        .btn-calculate:active { transform: translateY(0); box-shadow: var(--shadow-btn-press); }
+        .panel-right { display: flex; flex-direction: column; gap: 16px; padding: 10px; margin: -10px; padding-bottom: 40px; }
+        .result-card {
+            background: var(--surface); border-radius: var(--radius); padding: 18px 20px;
+            box-shadow: var(--shadow-out); transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+            animation: fadeInCard 0.5s ease-out both;
+        }
+        .result-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+        .result-card:nth-child(1) { animation-delay: 0.0s; }
+        .result-card:nth-child(2) { animation-delay: 0.08s; }
+        .result-card:nth-child(3) { animation-delay: 0.16s; }
+        @keyframes fadeInCard { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .result-card h3 { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .result-card h3 .icon { font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-out-sm); }
+        .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+        .kv-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; gap: 8px; transition: background 0.2s; }
+        .kv-row:hover { background: rgba(163,177,198,0.12); }
+        .kv-key { font-size: 11px; color: var(--text-light); white-space: nowrap; }
+        .kv-val { font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace; font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; }
+        .highlight-row { background: rgba(67,97,238,0.06) !important; border-radius: 8px; box-shadow: var(--shadow-in); }
+        .highlight-val { color: var(--accent); font-size: 13px; }
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 11px; }
+        .data-table th { background: linear-gradient(135deg, #3a4a5c, #2d3a4a); color: white; padding: 8px 10px; text-align: right; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .data-table th:first-child { text-align: left; border-radius: 10px 0 0 10px; }
+        .data-table th:last-child { border-radius: 0 10px 10px 0; }
+        .data-table td { padding: 7px 10px; text-align: right; font-family: 'SF Mono', 'Menlo', monospace; font-size: 11px; background: var(--surface); transition: all 0.2s; }
+        .data-table td:first-child { text-align: left; border-radius: 8px 0 0 8px; }
+        .data-table td:last-child { border-radius: 0 8px 8px 0; }
+        .data-table tr:hover td { box-shadow: var(--shadow-in); color: var(--accent); }
+        .total-block {
+            background: linear-gradient(135deg, #2d3a4a 0%, #1e2a3a 100%); color: white;
+            border-radius: var(--radius); padding: 20px;
+            box-shadow: 8px 8px 16px rgba(30,42,58,0.4), -4px -4px 12px rgba(255,255,255,0.05);
+            animation: fadeInCard 0.5s ease-out both; position: relative; overflow: hidden;
+        }
+        .total-block::before { content: ''; position: absolute; top: -40%; right: -20%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(67,97,238,0.15) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
+        .total-block h3 { color: white; margin-bottom: 12px; position: relative; z-index: 1; }
+        .total-block h3 .icon { background: rgba(255,255,255,0.1); box-shadow: none; }
+        .total-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative; z-index: 1; }
+        .total-row.two-col { grid-template-columns: 1fr auto; }
+        .total-row:last-child { border-bottom: none; }
+        .total-label { font-size: 13px; opacity: 0.7; }
+        .total-sum { font-family: 'SF Mono', monospace; font-size: 12px; opacity: 0.4; text-align: right; min-width: 80px; }
+        .total-value { font-family: 'SF Mono', monospace; font-weight: 700; font-size: 14px; text-align: right; min-width: 80px; }
+        .total-value.big { font-size: 26px; background: linear-gradient(135deg, var(--accent-sky), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 4px rgba(56,189,248,0.3)); }
+        .total-divider { border-top: 1px solid rgba(255,255,255,0.12); margin: 6px 0; position: relative; z-index: 1; }
+        .total-header-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 0 0 6px 0; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.15); position: relative; z-index: 1; }
+        .total-header-row span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.4; font-weight: 600; }
+        .total-header-row span:nth-child(2), .total-header-row span:nth-child(3) { text-align: right; min-width: 80px; }
+        .usd-row { font-size: 11px; opacity: 0.5; text-align: right; padding-top: 2px; position: relative; z-index: 1; }
+        .placeholder { text-align: center; padding: 80px 20px; color: var(--text-light); }
+        .placeholder .icon { font-size: 56px; margin-bottom: 16px; animation: pulseIcon 3s ease-in-out infinite; }
+        .placeholder p { font-size: 15px; }
+        .placeholder .hint { margin-top: 8px; font-size: 12px; opacity: 0.6; }
+        @keyframes pulseIcon { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; } }
+        .error-box { background: rgba(220,38,38,0.06); border: none; border-radius: var(--radius-xs); padding: 14px 18px; color: #dc2626; font-size: 13px; box-shadow: var(--shadow-in); }
+        .animate-count { display: inline-block; transition: all 0.3s; }
+        @keyframes countFlash { 0% { color: var(--accent); transform: scale(1.12); } 100% { color: inherit; transform: scale(1); } }
+        .flash-count { animation: countFlash 0.8s ease-out; }
+        .big.flash-count { animation: countFlashBig 1.2s ease-out; }
+        @keyframes countFlashBig { 0% { transform: scale(0.6); opacity: 0; } 50% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes particleBurst { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; } }
+        .particle { position: absolute; width: 6px; height: 6px; border-radius: 50%; pointer-events: none; animation: particleBurst 0.8s ease-out forwards; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(163,177,198,0.5); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(163,177,198,0.7); }
+        @media (max-width: 1024px) { .container { grid-template-columns: 1fr; padding: 10px; } .panel-left { max-height: none; position: static; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left"><div class="logo-pill"><img src="logo.png" alt="Standard Life"></div></div>
+    <div class="header-right"><h1>Калькулятор НСЖ</h1><div class="subtitle">Saqtau Invest</div></div>
+</div>
+
+<div class="container">
+    <div class="panel-left">
+        <div class="section-title">Параметры полиса</div>
+        <div class="form-group"><label>Дата рождения</label><input type="date" id="dob" value="1990-05-15" class="neu-input"></div>
+        <div class="form-group"><label>Пол</label>
+            <div class="radio-group">
+                <div class="radio-pill"><input type="radio" name="gender" id="g_male" value="male" checked><label for="g_male">Мужской</label></div>
+                <div class="radio-pill"><input type="radio" name="gender" id="g_female" value="female"><label for="g_female">Женский</label></div>
+            </div>
+        </div>
+        <div class="form-row-3">
+            <div class="form-group"><label>Срок (лет)</label>
+                <div class="stepper">
+                    <div class="btn-step minus" data-target="term" data-step="-1" data-min="3" data-max="20">&#8722;</div>
+                    <input type="text" id="term" value="10" class="fmt-number" data-step="1" data-min="3" data-max="20">
+                    <div class="btn-step plus" data-target="term" data-step="1" data-min="3" data-max="20">+</div>
+                </div>
+            </div>
+            <div class="form-group"><label>Периодичность</label>
+                <select id="frequency" class="neu-input">
+                    <option value="annual" selected>Годовой</option>
+                    <option value="semiannual">Полугодовой</option>
+                    <option value="quarterly">Квартальный</option>
+                    <option value="monthly">Ежемесячный</option>
+                    <option value="single">Единовременный</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Курс USD (KZT)</label>
+                <div class="stepper">
+                    <div class="btn-step minus" data-target="usd_rate" data-step="-1" data-min="1" data-max="9999">&#8722;</div>
+                    <input type="text" id="usd_rate" value="500" class="fmt-number" data-step="1" data-min="1" data-max="9999">
+                    <div class="btn-step plus" data-target="usd_rate" data-step="1" data-min="1" data-max="9999">+</div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group"><label>Страховая защита</label>
+            <div class="radio-group">
+                <div class="radio-pill"><input type="radio" name="death_benefit" id="db_full" value="full_sum_assured" checked><label for="db_full">Полная страх. сумма</label></div>
+                <div class="radio-pill"><input type="radio" name="death_benefit" id="db_paid" value="paid_premiums"><label for="db_paid">Оплаченные взносы</label></div>
+            </div>
+        </div>
+        <div class="section-title" style="margin-top:10px;">Режим расчёта</div>
+        <div class="mode-toggle">
+            <div class="radio-pill"><input type="radio" name="mode" id="mode_sa" value="sa_to_premium" checked><label for="mode_sa">Страх. Сумма &#8594; Премия</label></div>
+            <div class="radio-pill"><input type="radio" name="mode" id="mode_pr" value="premium_to_sa"><label for="mode_pr">Премия &#8594; Страх. Сумма</label></div>
+        </div>
+        <div class="form-group" id="sa_group"><label>Страховая сумма (KZT)</label>
+            <div class="stepper">
+                <div class="btn-step minus" data-target="sum_assured" data-step="-1000000">&#8722;</div>
+                <input type="text" id="sum_assured" value="10 000 000" inputmode="numeric" class="fmt-number">
+                <div class="btn-step plus" data-target="sum_assured" data-step="1000000">+</div>
+            </div>
+        </div>
+        <div class="form-group" id="pr_group" style="display:none;"><label>Премия (KZT)</label>
+            <div class="stepper">
+                <div class="btn-step minus" data-target="premium" data-step="-10000">&#8722;</div>
+                <input type="text" id="premium" value="50 000" inputmode="numeric" class="fmt-number">
+                <div class="btn-step plus" data-target="premium" data-step="10000">+</div>
+            </div>
+        </div>
+        <div class="section-title" style="margin-top:10px;">Дополнительные покрытия</div>
+        <div class="riders-section">
+            <div class="rider-group-label">Привязанные к страховой сумме</div>
+            <div class="rider-check-row"><input type="checkbox" id="r_ad"><span class="rider-name">Смерть от НС</span><span class="rider-sa-tag">сумма = СС</span></div>
+            <div class="rider-check-row"><input type="checkbox" id="r_dis"><span class="rider-name">Инвалидность 1,2 гр. от НС</span><span class="rider-sa-tag">сумма = СС</span></div>
+            <div class="rider-group-label">Фиксированные суммы</div>
+            <div class="rider-check-row"><input type="checkbox" id="r_tr"><span class="rider-name">Телесные травмы от НС</span>
+                <select id="r_tr_s"><option value="500000">500 000</option><option value="1000000" selected>1 000 000</option><option value="1500000">1 500 000</option><option value="2000000">2 000 000</option></select></div>
+            <div class="rider-check-row"><input type="checkbox" id="r_td"><span class="rider-name">Врем. утрата труд. от НС</span>
+                <select id="r_td_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
+            <div class="rider-check-row"><input type="checkbox" id="r_ho"><span class="rider-name">Госпитализация от НС</span>
+                <select id="r_ho_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
+            <div class="rider-group-label">Актуарные покрытия</div>
+            <div class="rider-check-row"><input type="checkbox" id="r_ci"><span class="rider-name">Критические заболевания</span>
+                <select id="r_ci_s"><option value="1000000" selected>1 000 000</option><option value="2000000">2 000 000</option><option value="3000000">3 000 000</option><option value="4000000">4 000 000</option><option value="5000000">5 000 000</option></select></div>
+            <div class="rider-check-row"><input type="checkbox" id="r_pw"><span class="rider-name">Освоб. от уплаты взносов</span><span class="rider-sa-tag">PV будущих премий</span></div>
+        </div>
+        <button class="btn-calculate" id="btn_calc" onclick="doCalculate()">Рассчитать</button>
+    </div>
+    <div class="panel-right" id="results">
+        <div class="result-card placeholder"><div class="icon">&#128202;</div><p>Заполните параметры и нажмите "Рассчитать"</p><p class="hint">Результаты появятся здесь</p></div>
+    </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+document.querySelectorAll('input[name="mode"]').forEach(function(r){r.addEventListener('change',function(){
+    var isSA=r.value==='sa_to_premium';
+    document.getElementById('sa_group').style.display=isSA?'':'none';
+    document.getElementById('pr_group').style.display=isSA?'none':'';
+});});
+
+function fmtS(n){if(n==null)return'\u2014';return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+function fmtPct(n){if(n==null)return'\u2014';return(Number(n)*100).toFixed(2)+'%';}
+function fmtUsd(n){if(!n||n===0)return'\u2014';return'$'+Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+
+var RL={'accidental_death':'Смерть от НС','disability_accident_lumpsum':'Инвал. 1,2 гр. от НС','trauma':'Телесные травмы от НС','temporary_disability':'Врем. утрата труд. от НС','hospitalization':'Госпитализация от НС','critical_illness':'Критические заболевания','premium_waiver':'Освоб. от уплаты взносов'};
+var FL={'annual':'Годовой','semiannual':'Полугодовой','quarterly':'Квартальный','monthly':'Ежемесячный','single':'Единовременный'};
+var DL={'full_sum_assured':'Полная страховая сумма','paid_premiums':'Сумма оплаченных взносов'};
+
+function parseNum(s){if(typeof s==='number')return s;return parseFloat(String(s).replace(/\s/g,'').replace(',','.'))||0;}
+function formatInputNum(s){var d=String(s).replace(/[^\d]/g,'');if(!d)return'';return d.replace(/\B(?=(\d{3})+(?!\d))/g,' ');}
+
+function buildRiders(d){
+    if(!d.riders||Object.keys(d.riders).length===0)return'';
+    var h='',sal=d.sa_linked_riders||[];
+    for(var k in d.riders){var r=d.riders[k];if(!r)continue;
+        var pm=r.rider_premium||0;if(pm===0)continue;
+        var rs=r.rider_sum||r.ci_sum||0;
+        h+='<div class="total-row"><span class="total-label" style="font-size:12px;">'+
+            (RL[k]||k)+(sal.indexOf(k)>=0?' <span style="opacity:0.4;font-size:10px;">(=\u0421\u0421)</span>':'')+
+            '</span><span class="total-sum">'+(rs>0?fmtS(rs):'\u2014')+
+            '</span><span class="total-value" style="font-size:13px;">'+fmtS(pm)+'</span></div>';
+    }return h;
+}
+
+function animateCountUp(el,tv,dur){dur=dur||800;if(isNaN(tv)||tv===0)return;var st=performance.now();
+    function up(ct){var e=ct-st,p=Math.min(e/dur,1),ea=1-Math.pow(1-p,3);
+        el.textContent=Math.round(tv*ea).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ');
+        if(p<1)requestAnimationFrame(up);else{el.textContent=fmtS(tv);el.classList.add('flash-count');}
+    }requestAnimationFrame(up);
+}
+
+function spawnParticles(c,n){n=n||12;var co=['#4361ee','#8b5cf6','#38bdf8','#10b981','#f59e0b'];
+    for(var i=0;i<n;i++){var p=document.createElement('div');p.className='particle';p.style.background=co[i%co.length];
+        var a=(Math.PI*2/n)*i,d=40+Math.random()*40;p.style.setProperty('--px',Math.cos(a)*d+'px');
+        p.style.setProperty('--py',Math.sin(a)*d+'px');p.style.left='50%';p.style.top='50%';
+        c.appendChild(p);setTimeout(function(e){e.remove();},900,p);}
+}
+
+function doCalculate(){
+    var md=document.querySelector('input[name="mode"]:checked').value;
+    var gn=document.querySelector('input[name="gender"]:checked').value;
+    var db=document.querySelector('input[name="death_benefit"]:checked').value;
+    var body={dob:document.getElementById('dob').value,gender:gn,
+        term:parseInt(parseNum(document.getElementById('term').value)),
+        frequency:document.getElementById('frequency').value,mode:md,
+        death_benefit_type:db,usd_rate:parseNum(document.getElementById('usd_rate').value),riders:{}};
+    if(md==='sa_to_premium')body.sum_assured=parseNum(document.getElementById('sum_assured').value);
+    else body.premium=parseNum(document.getElementById('premium').value);
+    if(document.getElementById('r_ad').checked)body.riders.accidental_death={enabled:true};
+    if(document.getElementById('r_dis').checked)body.riders.disability_accident_lumpsum={enabled:true};
+    if(document.getElementById('r_tr').checked)body.riders.trauma={enabled:true,sum:parseFloat(document.getElementById('r_tr_s').value)};
+    if(document.getElementById('r_td').checked)body.riders.temporary_disability={enabled:true,sum:parseFloat(document.getElementById('r_td_s').value)};
+    if(document.getElementById('r_ho').checked)body.riders.hospitalization={enabled:true,sum:parseFloat(document.getElementById('r_ho_s').value)};
+    if(document.getElementById('r_ci').checked)body.riders.critical_illness={enabled:true,sum:parseFloat(document.getElementById('r_ci_s').value)};
+    if(document.getElementById('r_pw').checked)body.riders.premium_waiver={enabled:true};
+
+    var d=NSJInvestEngine.calculate(body);
+    if(!d.success){renderError(d.error,d.validation);return;}
+    renderResults(d);
+}
+
+function renderError(msg,vl){
+    var p=document.getElementById('results');
+    var ic=vl?'\u26A0\uFE0F':'\u274C',ti=vl?'Внимание':'Ошибка',bg=vl?'#fff3cd':'#fde8e8',bc=vl?'#ffc107':'#e74c3c';
+    p.innerHTML='<div class="result-card"><div class="error-box" style="background:'+bg+';border-left:4px solid '+bc+';padding:16px;border-radius:8px;"><strong>'+ic+' '+ti+':</strong> '+msg+'</div></div>';
+}
+
+function renderResults(d){
+    var p=document.getElementById('results'),fl=FL[d.frequency]||d.frequency,dl=DL[d.death_benefit_type]||d.death_benefit_type;
+    var rr='';
+    if(d.reserves)d.reserves.forEach(function(r){rr+='<tr><td style="text-align:left">'+r.year+'</td><td>'+r.age+'</td><td>'+fmtS(r.reserve)+'</td><td>'+fmtS(r.surrender)+'</td><td>'+fmtS(r.reduced_sa)+'</td></tr>';});
+    p.innerHTML=
+        '<div class="result-card"><h3><span class="icon">&#128203;</span> Основные показатели</h3><div class="kv-grid">'+
+        '<div class="kv-row"><span class="kv-key">Возраст</span><span class="kv-val">'+d.age+'</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Срок страхования</span><span class="kv-val">'+d.term+' лет</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Срок оплаты</span><span class="kv-val">'+d.payment_term+' лет</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Ставка доходности</span><span class="kv-val">'+fmtPct(d.interest_rate)+'</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Периодичность</span><span class="kv-val">'+fl+'</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Страх. защита</span><span class="kv-val">'+dl+'</span></div>'+
+        '<div class="kv-row highlight-row"><span class="kv-key"><strong>Страх. сумма (KZT)</strong></span><span class="kv-val highlight-val animate-count" data-target="'+Math.round(d.sum_assured)+'">'+fmtS(d.sum_assured)+'</span></div>'+
+        '<div class="kv-row"><span class="kv-key">Страх. сумма (USD)</span><span class="kv-val">'+fmtUsd(d.sum_assured_usd)+'</span></div>'+
+        '<div class="kv-row highlight-row"><span class="kv-key"><strong>Годовая премия</strong></span><span class="kv-val highlight-val animate-count" data-target="'+d.annual_premium+'">'+fmtS(d.annual_premium)+'</span></div>'+
+        '<div class="kv-row highlight-row"><span class="kv-key"><strong>Премия ('+fl+')</strong></span><span class="kv-val highlight-val animate-count" data-target="'+d.gross_premium+'">'+fmtS(d.gross_premium)+'</span></div>'+
+        '</div></div>'+
+        '<div class="total-block" id="total-block"><h3><span class="icon">&#128176;</span> Итого</h3>'+
+        '<div class="total-header-row"><span>Покрытие</span><span>Страх. сумма</span><span>Премия</span></div>'+
+        '<div class="total-row"><span class="total-label">Основное покрытие</span><span class="total-sum">'+fmtS(d.sum_assured)+'</span><span class="total-value animate-count" data-target="'+d.gross_premium+'">'+fmtS(d.gross_premium)+'</span></div>'+
+        buildRiders(d)+
+        '<div class="total-divider"></div>'+
+        '<div class="total-row two-col" style="padding-top:12px;margin-top:4px;"><span class="total-label" style="font-size:16px;font-weight:700;opacity:1;">ИТОГО ПРЕМИЯ</span><span class="total-value big animate-count" data-target="'+d.total_premium+'" id="tp-val">'+fmtS(d.total_premium)+'</span></div>'+
+        (d.total_premium_usd?'<div class="usd-row">'+fmtUsd(d.total_premium_usd)+'</div>':'')+
+        '</div>'+
+        (rr?'<div class="result-card"><h3><span class="icon">&#128200;</span> Таблица резервов и выкупных сумм</h3><div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Год</th><th>Возраст</th><th>Резерв</th><th>Выкупная</th><th>УСС</th></tr></thead><tbody>'+rr+'</tbody></table></div></div>':'');
+
+    setTimeout(function(){
+        document.querySelectorAll('.animate-count').forEach(function(el){
+            var t=parseInt(el.dataset.target);if(t&&t>0)animateCountUp(el,t,el.classList.contains('big')?1200:800);
+        });
+        var tb=document.getElementById('total-block');if(tb)setTimeout(function(){spawnParticles(tb,16);},600);
+    },100);
+}
+
+document.querySelectorAll('.btn-step').forEach(function(b){b.addEventListener('click',function(){
+    var inp=document.getElementById(b.dataset.target),s=parseInt(b.dataset.step),mn=parseInt(b.dataset.min)||0,mx=parseInt(b.dataset.max)||999999999;
+    var v=Math.max(mn,Math.min(mx,parseNum(inp.value)+s));inp.value=formatInputNum(String(v));
+});});
+
+document.querySelectorAll('.fmt-number').forEach(function(el){
+    el.addEventListener('blur',function(){el.value=formatInputNum(el.value);});
+    el.addEventListener('input',function(){var pos=el.selectionStart,ol=el.value.length;el.value=formatInputNum(el.value.replace(/[^\d]/g,''));var nl=el.value.length;el.setSelectionRange(pos+(nl-ol),pos+(nl-ol));});
+});
+
+document.addEventListener('keydown',function(e){if(e.key==='Enter')doCalculate();});
+</script>
+</body>
+</html>
