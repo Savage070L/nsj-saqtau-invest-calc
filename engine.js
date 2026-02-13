@@ -33,7 +33,6 @@
         accidental_death: { t: 0.002, e: 0.25, q: 0.4 },
         disability_accident_lumpsum: { t: 0.0007, e: 0.25, q: 0.4 },
         trauma: { t: 0.006, e: 0.05, q: 0.25 },
-        temporary_disability: { t: 0.002, e: 0.05, q: 0.25 },
         hospitalization: { t: 0.0015, e: 0.05, q: 0.25 }
     };
 
@@ -75,24 +74,6 @@
         return { D:D, N:N, C:C, M:M, R:R, l:l, q:u };
     }
 
-    /* Build CI commutation table (double decrement) */
-    function _b2(rd, rc, i) {
-        var v = 1 / (1 + i), qd = [], qc = [], x;
-        for (x = 0; x <= _w0; x++) { qd[x] = rd[x] / 1000; qc[x] = rc[x] / 1000; }
-        qd[_w0] = 1.0;
-        for (x = 0; x <= _w0; x++) {
-            var s = qd[x] + qc[x];
-            if (s > 1) { qd[x] = qd[x] / s; qc[x] = qc[x] / s; }
-        }
-        var l = [], D = [], N = [];
-        l[0] = 1000000;
-        for (x = 0; x < _w0; x++) l[x + 1] = Math.max(l[x] * (1 - qd[x] - qc[x]), 0);
-        l[_w0] = Math.max(l[_w0], 0);
-        for (x = 0; x <= _w0; x++) D[x] = l[x] * Math.pow(v, x);
-        N[_w0] = D[_w0];
-        for (x = _w0 - 1; x >= 0; x--) N[x] = D[x] + N[x + 1];
-        return { D:D, N:N, l:l, qc:qc };
-    }
 
     /* Calc alfa (acquisition load) */
     function _alfa(ge, Dx, Dx1, Dx2, Dx3, t) {
@@ -135,8 +116,12 @@
         };
     }
 
-    /* Reserves table */
+    /* Reserves table
+     * Страховые резервы ВСЕГДА по формуле Резерв_1 (Ax-based).
+     * Выкупные: full_sum_assured → Резерв_1, paid_premiums → Резерв_2 (Ex-based, IAx / D(x)).
+     */
     function _r1(tb, x, n, t, BP, ge, SA, dbt) {
+        var Dx = tb.D[x]; // D(x) базового возраста — для IAx в Резерв_2
         var Mxn = tb.M[x+n], Dxn = tb.D[x+n], Nxn = tb.N[x+n], Nxt = tb.N[x+t], Rxn = tb.R[x+n];
         var rv = [], k;
         for (k = 1; k <= n; k++) {
@@ -146,7 +131,6 @@
             var Axk = (Mxk - Mxn + Dxn) / Dxk;
             var Exk = Dxn / Dxk;
             var ank = (Nxk - Nxn) / Dxk;
-            var IAxk = (Rxk - Rxn - (n - k) * Mxn) / Dxk;
             var atk = (k < t) ? (Nxk - Nxt) / Dxk : 0;
             var al;
             if (t === 1) al = 0;
@@ -161,13 +145,20 @@
                 al = ge.G5 || 0;
             } else al = 0;
 
-            var rr;
+            // Резерв_1 (Ax-based) — ВСЕГДА для отображения «Страховые резервы»
+            var rr = Axk + ge.G7 * ank + BP * (al + ge.G6 * atk - atk);
+
+            // Выкупные: зависят от типа защиты
+            var surr_base;
             if (dbt === 'paid_premiums') {
-                rr = Exk + ge.G7 * ank + BP * IAxk - BP * (atk - ge.G6 * atk - al);
+                // Резерв_2 (Ex-based): IAx делится на D(x), НЕ D(x+k)
+                var IAxk = (Rxk - Rxn - (n - k) * Mxn) / Dx;
+                surr_base = Exk + ge.G7 * ank + BP * IAxk + BP * (al + ge.G6 * atk - atk);
             } else {
-                rr = Axk + ge.G7 * ank - BP * (atk - ge.G6 * atk - al);
+                surr_base = rr; // full_sum_assured — тот же Резерв_1
             }
-            var sr = rr - (1 - rr) * _w2;
+
+            var sr = surr_base - (1 - surr_base) * _w2;
             var res = rr * SA;
             var sur = Math.max(sr * SA, 0);
             if (k === n) sur = SA;
@@ -186,76 +177,6 @@
         return { gross_tariff:gt, rider_sum:rs, rider_premium:gt * rs * ff };
     }
 
-    /* CI rider premium (actuarial, double decrement) */
-    function _p3(qx, qci, i, x, n, t, ff, cs, sg) {
-        var ctb = _b2(qx, qci, i);
-        var ge = _gx(n, t);
-        var Dx0 = ctb.D[x];
-        if (Dx0 === 0) return { BP_ci:0, ci_sum:cs, rider_premium:0 };
-        var A_ci = 0, k;
-        for (k = 0; k < n; k++) {
-            var age_k = x + k;
-            if (age_k > _w0) break;
-            A_ci += ctb.D[age_k] / Dx0 * ctb.qc[age_k];
-        }
-        var Nx0 = ctb.N[x], Nxn = ctb.N[x+n], Nxt = ctb.N[x+t];
-        var Dx1 = ctb.D[x+1], Dx2 = ctb.D[x+2], Dx3 = ctb.D[x+3];
-        var ax_n = (Nx0 - Nxn) / Dx0;
-        var ax_t = (Nx0 - Nxt) / Dx0;
-        var G2k = _ek(t);
-        var et = _ex[G2k];
-        var G2 = Math.ceil(et.G2 * 100) / 100;
-        var G3 = Math.ceil(et.G3 * 100) / 100;
-        var al = G2 + G3 * Dx1 / Dx0;
-        var num = A_ci + ge.G7 * ax_n;
-        var den = ax_t - ge.G6 * ax_t - al;
-        var BP_ci = (den > 0) ? Math.round(num / den * 10000) / 10000 : 0;
-        var pm;
-        if (sg) pm = BP_ci * cs;
-        else pm = BP_ci * cs * ff;
-        return { BP_ci:BP_ci, A_ci:A_ci, ci_sum:cs, rider_sum:cs, rider_premium:pm };
-    }
-
-    /* Premium waiver */
-    function _p4w(BP_main, SA, ff, freq, sg, n) {
-        if (sg || freq === 'single' || n <= 1) return { rider_premium: 0 };
-        var ap = Math.round(BP_main * SA, 0);
-        var rc = _rd.disability_accident_lumpsum;
-        var j6 = Math.round((rc.t * (1 + rc.e) / (1 - rc.q)) * 10000) / 10000;
-        var r_sum = 0;
-        for (var k = 0; k < n; k++) {
-            var remaining = n - 1 - k;
-            if (remaining <= 0) continue;
-            var pv = ap * remaining;
-            r_sum += Math.round(pv * j6);
-        }
-        var avg = r_sum / (n - 1);
-        var pm = Math.round(avg * ff);
-        return { rider_premium: pm, gross_tariff: j6 };
-    }
-
-    /* Helper: calc one rider premium for iteration (unrounded for precision) */
-    function _rp1(rk, rs, x, n, t, freq, ff, sg, BP_main, SA, qx, qci) {
-        if (rk === 'premium_waiver') {
-            if (sg || freq === 'single' || n <= 1) return 0;
-            var ap = BP_main * SA;
-            var rc = _rd.disability_accident_lumpsum;
-            var j6 = Math.round((rc.t * (1 + rc.e) / (1 - rc.q)) * 10000) / 10000;
-            var r_sum = 0;
-            for (var k = 0; k < n; k++) {
-                var rem = n - 1 - k;
-                if (rem <= 0) continue;
-                r_sum += ap * rem * j6;
-            }
-            return r_sum / (n - 1) * ff;
-        } else if (rk === 'critical_illness') {
-            var ci = _p3(qx, qci, _gi(n), x, n, t, ff, rs, sg);
-            return ci.rider_premium;
-        } else {
-            var sr = _p2(rk, rs, n, ff, sg);
-            return sr ? sr.rider_premium : 0;
-        }
-    }
 
     /* Main calculate function */
     function _ca(p) {
@@ -294,17 +215,12 @@
         if (ri_in.accidental_death && ri_in.accidental_death.enabled) sa_linked.push('accidental_death');
         if (ri_in.disability_accident_lumpsum && ri_in.disability_accident_lumpsum.enabled) sa_linked.push('disability_accident_lumpsum');
         var fixed_r = [];
-        var _fkeys = ['trauma', 'temporary_disability', 'hospitalization'];
+        var _fkeys = ['trauma', 'hospitalization'];
         for (var fi = 0; fi < _fkeys.length; fi++) {
             var _fk = _fkeys[fi];
             var _fs = ri_in[_fk] || {};
             if (_fs.enabled) fixed_r.push([_fk, parseFloat(_fs.sum || 0)]);
         }
-        var ci_enabled = ri_in.critical_illness && ri_in.critical_illness.enabled;
-        var ci_sum = ci_enabled ? parseFloat(ri_in.critical_illness.sum || 0) : 0;
-        var waiver_enabled = ri_in.premium_waiver && ri_in.premium_waiver.enabled;
-        var gci = (p.gender === 'male') ? 'cm' : 'cf';
-        var qci = _q0[gci];
 
         var SA, ap, gp;
 
@@ -313,29 +229,22 @@
             /* Fixed rider premiums */
             var fixed_total = 0;
             for (var ffi = 0; ffi < fixed_r.length; ffi++) {
-                fixed_total += _rp1(fixed_r[ffi][0], fixed_r[ffi][1], x, n, t, fr, ff, sg, 0, 0, qx, qci);
-            }
-            /* CI premium (fixed sum, not SA-linked) */
-            var ci_pm_iter = 0;
-            if (ci_enabled && ci_sum > 0) {
-                ci_pm_iter = _rp1('critical_illness', ci_sum, x, n, t, fr, ff, sg, 0, 0, qx, qci);
+                var _fr = _p2(fixed_r[ffi][0], fixed_r[ffi][1], n, ff, sg);
+                if (_fr) fixed_total += _fr.rider_premium;
             }
             /* Initial SA guess */
-            var remaining = total_pm - fixed_total - ci_pm_iter;
+            var remaining = total_pm - fixed_total;
             SA = (sg) ? (BP > 0 ? remaining / BP : 0) : (BP > 0 ? remaining / (BP * ff) : 0);
 
-            /* Iterate for SA-linked riders + waiver */
+            /* Iterate for SA-linked riders */
             for (var it = 0; it < 100; it++) {
                 ap = BP * SA;
                 var sa_total = 0;
                 for (var si = 0; si < sa_linked.length; si++) {
-                    sa_total += _rp1(sa_linked[si], SA, x, n, t, fr, ff, sg, BP, SA, qx, qci);
+                    var _sr = _p2(sa_linked[si], SA, n, ff, sg);
+                    if (_sr) sa_total += _sr.rider_premium;
                 }
-                var waiver_pm = 0;
-                if (waiver_enabled) {
-                    waiver_pm = _rp1('premium_waiver', 0, x, n, t, fr, ff, sg, BP, SA, qx, qci);
-                }
-                remaining = total_pm - fixed_total - ci_pm_iter - sa_total - waiver_pm;
+                remaining = total_pm - fixed_total - sa_total;
                 if (remaining <= 0) remaining = 0;
                 var new_sa = (sg) ? (BP > 0 ? remaining / BP : 0) : (BP > 0 ? remaining / (BP * ff) : 0);
                 if (Math.abs(new_sa - SA) < 1) { SA = new_sa; break; }
@@ -383,16 +292,6 @@
             var bk = fixed_r[bi][0], bs = fixed_r[bi][1];
             var br = _p2(bk, bs, n, ff, sg);
             if (br) { ri[bk] = br; rt += br.rider_premium; }
-        }
-        if (ci_enabled && ci_sum > 0) {
-            var ci_r = _p3(qx, qci, i, x, n, t, ff, ci_sum, sg);
-            ri.critical_illness = ci_r;
-            rt += ci_r.rider_premium;
-        }
-        if (waiver_enabled) {
-            var w = _p4w(BP, SA, ff, fr, sg, n);
-            ri.premium_waiver = w;
-            rt += w.rider_premium;
         }
 
         var sa_usd = usd_rate > 0 ? Math.round(SA / usd_rate * 100) / 100 : 0;
