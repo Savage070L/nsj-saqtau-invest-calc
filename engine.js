@@ -232,27 +232,25 @@
                 var _fr = _p2(fixed_r[ffi][0], fixed_r[ffi][1], n, ff, sg);
                 if (_fr) fixed_total += _fr.rider_premium;
             }
-            /* Initial SA guess */
-            var remaining = total_pm - fixed_total;
-            SA = (sg) ? (BP > 0 ? remaining / BP : 0) : (BP > 0 ? remaining / (BP * ff) : 0);
 
-            /* Iterate for SA-linked riders */
-            for (var it = 0; it < 100; it++) {
-                ap = BP * SA;
+            /* Binary search for SA where total_premium == target (like Excel Goal Seek) */
+            var lo = 0, hi = (BP > 0 ? total_pm / BP * 20 : 1e12);
+            for (var bs = 0; bs < 200; bs++) {
+                var mid = (lo + hi) / 2;
+                var sa_c = Math.round(mid);
+                var main_gp = sg ? Math.round(BP * sa_c) : Math.round(BP * sa_c * ff);
                 var sa_total = 0;
                 for (var si = 0; si < sa_linked.length; si++) {
-                    var _sr = _p2(sa_linked[si], SA, n, ff, sg);
+                    var _sr = _p2(sa_linked[si], sa_c, n, ff, sg);
                     if (_sr) sa_total += _sr.rider_premium;
                 }
-                remaining = total_pm - fixed_total - sa_total;
-                if (remaining <= 0) remaining = 0;
-                var new_sa = (sg) ? (BP > 0 ? remaining / BP : 0) : (BP > 0 ? remaining / (BP * ff) : 0);
-                if (Math.abs(new_sa - SA) < 1) { SA = new_sa; break; }
-                SA = new_sa;
+                var tp = main_gp + sa_total + fixed_total;
+                if (Math.abs(tp - total_pm) < 0.5) break;
+                if (tp < total_pm) lo = mid; else hi = mid;
             }
-            SA = Math.round(SA);
+            SA = Math.round(mid);
             ap = BP * SA;
-            gp = sg ? ap : BP * SA * ff;
+            gp = sg ? Math.round(ap) : Math.round(BP * SA * ff);
 
             /* Min premium validation */
             var min_annual = 1000 * usd_rate;
@@ -266,7 +264,7 @@
         } else {
             SA = parseFloat(p.sum_assured);
             ap = BP * SA;
-            gp = sg ? ap : BP * SA * ff;
+            gp = sg ? Math.round(ap) : Math.round(BP * SA * ff);
             /* Min premium validation */
             var min_annual2 = 1000 * usd_rate;
             if (Math.round(ap) < min_annual2) {
