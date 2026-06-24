@@ -37,22 +37,22 @@
     };
 
     function _ek(n) { return String(Math.min(Math.max(n, 3), 15)); }
+    /* Excel ROUNDUP(x,2) с защитой от плавающей точки */
+    function _ru2(x) { return Math.ceil(Number((x * 100).toFixed(6))) / 100; }
 
-    /* Get expenses: G6,G7 from n; G2-G5 from t; H4 from n */
+    /* Расходы ТОЧНО как в Excel (Параметры G2..G7): все по СРОКУ УПЛАТЫ t.
+       При t=1 (единовременно) Excel обнуляет G2,G3,G6,G7, а единовременная
+       нагрузка H4=Параметры!H4=0 (ячейка пустая) → нагрузки нет. */
     function _gx(n, t) {
-        var en = _ex[_ek(n)];
-        var G6 = en.G6, G7 = en.G7, H4 = en.H4;
-        var G2, G3, G4, G5;
         if (t === 1) {
-            G2 = H4; G3 = 0; G4 = 0; G5 = 0;
-        } else {
-            var et = _ex[_ek(t)];
-            G2 = Math.ceil(et.G2 * 100) / 100;
-            G3 = Math.ceil(et.G3 * 100) / 100;
-            G4 = et.G4 || 0;
-            G5 = et.G5 || 0;
+            return { G2:0, G3:0, G4:0, G5:0, G6:0, G7:0, H4:0 };
         }
-        return { G2:G2, G3:G3, G4:G4, G5:G5, G6:G6, G7:G7, H4:H4 };
+        var et = _ex[_ek(t)];
+        return {
+            G2: _ru2(et.G2), G3: _ru2(et.G3),
+            G4: et.G4 || 0,  G5: et.G5 || 0,
+            G6: et.G6, G7: et.G7, H4: et.H4 || 0
+        };
     }
 
     /* Build commutation table: D, N, S, C, M, R (death_timing=2, end of year) */
@@ -97,7 +97,8 @@
         var Ex_n = Dxn / Dx;
         var ax_n = (Nx - Nxn) / Dx;
         var ax_t = (Nx - Nxt) / Dx;
-        var IAx_n = (Rx - Rxn - n * Mxn) / Dx;
+        // Excel F10: IF(t=1, (Mx−Mxn)/Dx, (Rx−Rxn−n·Mxn)/Dx)
+        var IAx_n = (t === 1) ? (Mx - Mxn) / Dx : (Rx - Rxn - n * Mxn) / Dx;
         var NP_1 = (ax_t > 0) ? Ax_n / ax_t : 0;
         var NP_2 = (ax_n - IAx_n > 0) ? Ex_n / (ax_n - IAx_n) : 0;
         var ge = _gx(n, t);
@@ -153,17 +154,20 @@
             if (dbt === 'paid_premiums') {
                 // Резерв_2 (Ex-based): IAx делится на D(x), НЕ D(x+k)
                 var IAxk = (Rxk - Rxn - (n - k) * Mxn) / Dx;
-                surr_base = Exk + ge.G7 * ank + BP * IAxk + BP * (al + ge.G6 * atk - atk);
+                // При единовременной уплате (t=1) Excel берёт Ax:n1_k = (Mxk−Mxn)/Dxk
+                var IAterm = (t === 1) ? (Mxk - Mxn) / Dxk : IAxk;
+                surr_base = Exk + ge.G7 * ank + BP * IAterm + BP * (al + ge.G6 * atk - atk);
             } else {
                 surr_base = rr; // full_sum_assured — тот же Резерв_1
             }
 
             var sr = surr_base - (1 - surr_base) * _w2;
-            var res = rr * SA;
-            var sur = Math.max(sr * SA, 0);
-            if (k === n) sur = SA;
-            var reduced = (Axk > 0) ? Math.round(sur / Axk) : 0;
-            rv.push({year:k, age:xk, reserve_rate:rr, reserve:Math.round(res), surrender:Math.round(sur), reduced_sa:reduced});
+            // Округление как в Excel: E=IF(rr>0,ROUND(rr·СС,0),0);
+            // P=IF(выкуп>0,ROUND(выкуп·СС,0),0); Q=IF(выкуп>0 и не единовр.,ROUND(P/Ax:n_k,0),0)
+            var reserve = (rr > 0) ? Math.round(rr * SA) : 0;
+            var sur = (sr > 0) ? Math.round(sr * SA) : 0;
+            var reduced = (sr > 0 && t !== 1 && Axk > 0) ? Math.round(sur / Axk) : 0;
+            rv.push({year:k, age:xk, reserve_rate:rr, reserve:reserve, surrender:sur, reduced_sa:reduced});
         }
         return rv;
     }
